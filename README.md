@@ -21,7 +21,7 @@
 
 Watch the application in action:
 
-![Demo](demo.gif)
+https://github.com/user-attachments/assets/56e342e9-55e7-4df4-84d1-36e729880e4f
 
 > See how easy it is to upload data, ask natural language questions, and get beautiful visualizations powered by AI agents.
 
