@@ -21,10 +21,7 @@
 
 Watch the application in action:
 
-<video width="100%" controls>
-  <source src="demo.mp4" type="video/mp4">
-  <p>Your browser does not support the video tag. <a href="demo.mp4">Download the demo video</a> to watch.</p>
-</video>
+![Demo](demo.gif)
 
 > See how easy it is to upload data, ask natural language questions, and get beautiful visualizations powered by AI agents.
 
