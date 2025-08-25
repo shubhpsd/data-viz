@@ -147,12 +147,6 @@ temp/
 *.sln
 *.sw?
 
-# Personal files
-demo.mov
-studio.png
-flow.png
-graph.png
-
 # Build artifacts
 *.tgz
 *.tar.gz
