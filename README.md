@@ -21,15 +21,12 @@
 
 Watch the application in action:
 
-https://github.com/user-attachments/assets/demo.mov
+<video width="100%" controls>
+  <source src="demo.mp4" type="video/mp4">
+  <p>Your browser does not support the video tag. <a href="demo.mp4">Download the demo video</a> to watch.</p>
+</video>
 
 > See how easy it is to upload data, ask natural language questions, and get beautiful visualizations powered by AI agents.
-
-<!-- Alternative options for video hosting:
-   - Upload to GitHub Releases and link here
-   - Host on YouTube/Vimeo and embed
-   - Convert to GIF for direct GitHub display
--->
 
 ## 🏗️ Architecture
 
