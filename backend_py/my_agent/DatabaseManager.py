@@ -5,13 +5,15 @@ from typing import List, Any
 
 class DatabaseManager:
     def __init__(self):
-        self.endpoint_url = os.getenv("DB_ENDPOINT_URL")
+        # Set default endpoint if not provided
+        self.endpoint_url = os.getenv("DB_ENDPOINT_URL", "http://localhost:3001")
 
     def get_schema(self, uuid: str) -> str:
         """Retrieve the database schema."""
         try:
             response = requests.get(
-                f"{self.endpoint_url}/get-schema/{uuid}"
+                f"{self.endpoint_url}/get-schema/{uuid}",
+                timeout=30  # Add timeout
             )
             response.raise_for_status()
             return response.json()['schema']
@@ -23,7 +25,8 @@ class DatabaseManager:
         try:
             response = requests.post(
                 f"{self.endpoint_url}/execute-query",
-                json={"uuid": uuid, "query": query}
+                json={"uuid": uuid, "query": query},
+                timeout=60  # Add timeout for query execution
             )
             response.raise_for_status()
             return response.json()['results']

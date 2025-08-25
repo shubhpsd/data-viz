@@ -26,6 +26,17 @@ export const exampleData2: BarGraphProps = {
 }
 
 const BarGraph: React.FC<BarGraphProps> = ({ data }) => {
+  console.log('BarGraph data:', data)
+  
+  // Validate data structure
+  if (!data || !data.labels || !Array.isArray(data.labels) || !data.values || !Array.isArray(data.values)) {
+    return (
+      <div className="flex items-center justify-center h-[300px] text-gruvbox-light-fg dark:text-gruvbox-dark-fg">
+        Invalid data format for bar chart
+      </div>
+    )
+  }
+
   // Sort the data according to labels
   const sortedData = {
     ...data,
@@ -53,7 +64,21 @@ const BarGraph: React.FC<BarGraphProps> = ({ data }) => {
     })),
   }
 
-  return <BarChart xAxis={[{ scaleType: 'band', data: sortedData.labels }]} series={sortedData.values} height={300} />
+  return (
+    <div style={{ width: '100%', height: '300px', padding: '20px' }}>
+      <BarChart 
+        xAxis={[{ scaleType: 'band', data: sortedData.labels }]} 
+        series={sortedData.values} 
+        height={300}
+        margin={{ left: 80, right: 40, top: 40, bottom: 80 }}
+        sx={{
+          '& .MuiResponsiveChart-container': {
+            width: '100% !important',
+          }
+        }}
+      />
+    </div>
+  )
 }
 
 export default BarGraph

@@ -5,8 +5,8 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ message: 'Method not allowed' })
   }
 
-  const { question, databaseUuid } = req.body
-  const defaultDatabaseUuid = '921c838c-541d-4361-8c96-70cb23abd9f5'
+  const { question, databaseUuid, sessionId } = req.body
+  const defaultDatabaseUuid = 'dae413af-fef8-4101-ad7d-9f333b041829'
 
   const client = new Client({
     apiKey: process.env.LANGSMITH_API_KEY,
@@ -16,7 +16,7 @@ export default async function handler(req: any, res: any) {
   try {
     const thread = await client.threads.create()
     const streamResponse = client.runs.stream(thread['thread_id'], 'my_agent', {
-      input: { question, uuid: databaseUuid || defaultDatabaseUuid },
+      input: { question, uuid: databaseUuid || defaultDatabaseUuid, session_id: sessionId },
     })
 
     res.writeHead(200, {

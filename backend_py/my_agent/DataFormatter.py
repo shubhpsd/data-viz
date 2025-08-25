@@ -37,6 +37,12 @@ class DataFormatter:
             except Exception as e:
                 return self._format_other_visualizations(visualization, question, sql_query, results)
         
+        if visualization == "pie":
+            try:
+                return self._format_pie_data(results, question)
+            except Exception as e:
+                return self._format_other_visualizations(visualization, question, sql_query, results)
+        
         return self._format_other_visualizations(visualization, question, sql_query, results)
     
     def _format_line_data(self, results, question):
@@ -196,6 +202,47 @@ class DataFormatter:
             "labels": labels,
             "values": values
         }
+
+        return {"formatted_data_for_visualization": formatted_data}
+
+    def _format_pie_data(self, results, question):
+        """Format data specifically for pie charts"""
+        if isinstance(results, str):
+            results = eval(results)
+
+        # Pie chart expects data format: [{"id": 0, "value": 10, "label": "Label"}]
+        formatted_data = []
+        
+        if len(results[0]) == 2:
+            # Check if we need to create "Others" category for pie charts
+            if len(results) > 6 and "top" in question.lower() and ("other" in question.lower() or "rest" in question.lower()):
+                # Take top 5 and combine rest as "Others"
+                top_5 = results[:5]
+                others_value = sum(float(row[1]) for row in results[5:])
+                
+                for i, (label, value) in enumerate(top_5):
+                    formatted_data.append({
+                        "id": i,
+                        "value": float(value),
+                        "label": str(label)
+                    })
+                
+                if others_value > 0:
+                    formatted_data.append({
+                        "id": 5,
+                        "value": others_value,
+                        "label": "Others"
+                    })
+            else:
+                # Simple pie chart: [label, value] pairs
+                for i, (label, value) in enumerate(results):
+                    formatted_data.append({
+                        "id": i,
+                        "value": float(value),
+                        "label": str(label)
+                    })
+        else:
+            raise ValueError("Pie chart requires exactly 2 columns: label and value")
 
         return {"formatted_data_for_visualization": formatted_data}
 

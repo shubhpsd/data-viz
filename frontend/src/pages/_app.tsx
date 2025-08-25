@@ -1,9 +1,14 @@
 /* eslint-disable react/jsx-props-no-spreading */
 import React from 'react'
 import { AppProps } from 'next/app'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 import '@/styles/tailwind.css'
 
-const App = ({ Component, pageProps }: AppProps) => <Component {...pageProps} />
+const App = ({ Component, pageProps }: AppProps) => (
+  <ThemeProvider>
+    <Component {...pageProps} />
+  </ThemeProvider>
+)
 
 export default App

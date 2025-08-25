@@ -1,4 +1,6 @@
-langchain
-python-dotenv
 langgraph
-langchain-openai
+langchain-google-genai
+requests
+flask
+flask-cors
+python-dotenv

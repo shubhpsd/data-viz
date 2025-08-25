@@ -166,12 +166,19 @@ const LineGraph: React.FC<LineGraphProps> = ({ data }) => {
   }
 
   return (
-    <LineChart
-      xAxis={[{ scaleType: 'point', data: sortedData.xValues }]}
-      series={sortedData.yValues}
-      width={1000}
-      height={300}
-    />
+    <div style={{ width: '100%', height: '300px', padding: '20px' }}>
+      <LineChart
+        xAxis={[{ scaleType: 'point', data: sortedData.xValues }]}
+        series={sortedData.yValues}
+        height={300}
+        margin={{ left: 80, right: 40, top: 40, bottom: 80 }}
+        sx={{
+          '& .MuiResponsiveChart-container': {
+            width: '100% !important',
+          }
+        }}
+      />
+    </div>
   )
 }
 

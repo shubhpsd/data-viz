@@ -2,21 +2,58 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from my_agent.DatabaseManager import DatabaseManager
 from my_agent.LLMManager import LLMManager
+from my_agent.ConversationManager import ConversationManager
 
 class SQLAgent:
     def __init__(self):
         self.db_manager = DatabaseManager()
         self.llm_manager = LLMManager()
+        self.conversation_manager = ConversationManager()
+
+    def get_conversation_context(self, uuid: str, session_id: str = None) -> str:
+        """Get recent conversation context for follow-up questions."""
+        if not session_id:
+            return ""
+        
+        try:
+            history = self.conversation_manager.get_conversation_history(session_id, limit=3)
+            if not history:
+                return ""
+            
+            context_parts = []
+            for entry in reversed(history):  # Reverse to get chronological order
+                if entry['question'] and entry['sql_query']:
+                    context_parts.append(f"Previous Q: {entry['question']}")
+                    context_parts.append(f"Previous SQL: {entry['sql_query']}")
+                    if entry['results_summary']:
+                        context_parts.append(f"Previous Result: {entry['results_summary']}")
+            
+            if context_parts:
+                return "===Recent conversation context:\n" + "\n".join(context_parts) + "\n\n"
+            return ""
+        except Exception as e:
+            print(f"Error getting conversation context: {e}")
+            return ""
 
     def parse_question(self, state: dict) -> dict:
         """Parse user question and identify relevant tables and columns."""
         question = state['question']
-        schema = self.db_manager.get_schema(state['uuid'])
+        uuid = state['uuid']
+        session_id = state.get('session_id')
+        schema = self.db_manager.get_schema(uuid)
+        
+        # Get conversation context for follow-up questions
+        context = self.get_conversation_context(uuid, session_id)
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", '''You are a data analyst that can help summarize SQL tables and parse user questions about a database. 
-Given the question and database schema, identify the relevant tables and columns. 
-If the question is not relevant to the database or if there is not enough information to answer the question, set is_relevant to false.
+Given the question, database schema, and any conversation context, identify the relevant tables and columns.
+
+Questions asking about "what data", "what kind of data", "describe the data", "show me the data", or similar exploratory questions should ALWAYS be considered relevant - these require examining the database structure and content.
+
+Only set is_relevant to false for questions that are completely unrelated to data analysis, databases, or business intelligence (like "What's the weather?" or "Tell me a joke").
+
+Pay attention to the conversation context as the current question might be a follow-up that references previous questions or results.
 
 Your response should be in the following JSON format:
 {{
@@ -30,14 +67,16 @@ Your response should be in the following JSON format:
     ]
 }}
 
+For exploratory questions about data types/content, include ALL tables and their main descriptive columns.
+
 The "noun_columns" field should contain only the columns that are relevant to the question and contain nouns or names, for example, the column "Artist name" contains nouns relevant to the question "What are the top selling artists?", but the column "Artist ID" is not relevant because it does not contain a noun. Do not include columns that contain numbers.
 '''),
-            ("human", "===Database schema:\n{schema}\n\n===User question:\n{question}\n\nIdentify relevant tables and columns:")
+            ("human", "{context}===Database schema:\n{schema}\n\n===User question:\n{question}\n\nIdentify relevant tables and columns:")
         ])
 
         output_parser = JsonOutputParser()
         
-        response = self.llm_manager.invoke(prompt, schema=schema, question=question)
+        response = self.llm_manager.invoke(prompt, schema=schema, question=question, context=context)
         parsed_response = output_parser.parse(response)
         return {"parsed_question": parsed_response}
 
@@ -67,15 +106,22 @@ The "noun_columns" field should contain only the columns that are relevant to th
         question = state['question']
         parsed_question = state['parsed_question']
         unique_nouns = state['unique_nouns']
+        uuid = state['uuid']
+        session_id = state.get('session_id')
 
         if not parsed_question['is_relevant']:
             return {"sql_query": "NOT_RELEVANT", "is_relevant": False}
     
-        schema = self.db_manager.get_schema(state['uuid'])
+        schema = self.db_manager.get_schema(uuid)
+        
+        # Get conversation context for follow-up questions
+        context = self.get_conversation_context(uuid, session_id)
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", '''
-You are an AI assistant that generates SQL queries based on user questions, database schema, and unique nouns found in the relevant tables. Generate a valid SQL query to answer the user's question.
+You are an AI assistant that generates SQL queries based on user questions, database schema, conversation context, and unique nouns found in the relevant tables. Generate a valid SQL query to answer the user's question.
+
+Pay attention to the conversation context as the current question might be a follow-up that references previous questions or results.
 
 If there is not enough information to write a SQL query, respond with "NOT_ENOUGH_INFO".
 
@@ -100,9 +146,9 @@ or
              
 For questions like "plot a distribution of the fares for men and women", count the frequency of each fare and plot it. The x axis should be the fare and the y axis should be the count of people who paid that fare.
 SKIP ALL ROWS WHERE ANY COLUMN IS NULL or "N/A" or "".
-Just give the query string. Do not format it. Make sure to use the correct spellings of nouns as provided in the unique nouns list. All the table and column names should be enclosed in backticks.
+Just give the query string. Do not format it. Do not include markdown code blocks or ```sql formatting. Return only the raw SQL query. Make sure to use the correct spellings of nouns as provided in the unique nouns list. All the table and column names should be enclosed in backticks.
 '''),
-            ("human", '''===Database schema:
+            ("human", '''{context}===Database schema:
 {schema}
 
 ===User question:
@@ -117,12 +163,23 @@ Just give the query string. Do not format it. Make sure to use the correct spell
 Generate SQL query string'''),
         ])
 
-        response = self.llm_manager.invoke(prompt, schema=schema, question=question, parsed_question=parsed_question, unique_nouns=unique_nouns)
+        response = self.llm_manager.invoke(prompt, schema=schema, question=question, parsed_question=parsed_question, unique_nouns=unique_nouns, context=context)
         
         if response.strip() == "NOT_ENOUGH_INFO":
             return {"sql_query": "NOT_RELEVANT"}
         else:
-            return {"sql_query": response}
+            # Clean up the response to remove markdown formatting
+            cleaned_query = response.strip()
+            # Remove ```sql and ``` markers if present
+            if cleaned_query.startswith("```sql"):
+                cleaned_query = cleaned_query[6:]
+            if cleaned_query.startswith("```"):
+                cleaned_query = cleaned_query[3:]
+            if cleaned_query.endswith("```"):
+                cleaned_query = cleaned_query[:-3]
+            cleaned_query = cleaned_query.strip()
+            
+            return {"sql_query": cleaned_query}
 
     def validate_and_fix_sql(self, state: dict) -> dict:
         """Validate and fix the generated SQL query."""
@@ -131,69 +188,19 @@ Generate SQL query string'''),
         if sql_query == "NOT_RELEVANT":
             return {"sql_query": "NOT_RELEVANT", "sql_valid": False}
         
-        schema = self.db_manager.get_schema(state['uuid'])
-
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", '''
-You are an AI assistant that validates and fixes SQL queries. Your task is to:
-1. Check if the SQL query is valid.
-2. Ensure all table and column names are correctly spelled and exist in the schema. All the table and column names should be enclosed in backticks.
-3. If there are any issues, fix them and provide the corrected SQL query.
-4. If no issues are found, return the original query.
-
-Respond in JSON format with the following structure. Only respond with the JSON:
-{{
-    "valid": boolean,
-    "issues": string or null,
-    "corrected_query": string
-}}
-'''),
-            ("human", '''===Database schema:
-{schema}
-
-===Generated SQL query:
-{sql_query}
-
-Respond in JSON format with the following structure. Only respond with the JSON:
-{{
-    "valid": boolean,
-    "issues": string or null,
-    "corrected_query": string
-}}
-
-For example:
-1. {{
-    "valid": true,
-    "issues": null,
-    "corrected_query": "None"
-}}
-             
-2. {{
-    "valid": false,
-    "issues": "Column USERS does not exist",
-    "corrected_query": "SELECT * FROM \`users\` WHERE age > 25"
-}}
-
-3. {{
-    "valid": false,
-    "issues": "Column names and table names should be enclosed in backticks if they contain spaces or special characters",
-    "corrected_query": "SELECT * FROM \`gross income\` WHERE \`age\` > 25"
-}}
-             
-'''),
-        ])
-
-        output_parser = JsonOutputParser()
-        response = self.llm_manager.invoke(prompt, schema=schema, sql_query=sql_query)
-        result = output_parser.parse(response)
-
-        if result["valid"] and result["issues"] is None:
+        # TEMPORARY FIX: Skip LLM validation and assume SQL is valid
+        # The validation LLM was causing queries to hang or be incorrectly marked invalid
+        # We'll validate by actually testing the query execution instead
+        try:
+            # Test the query by executing it
+            results = self.db_manager.execute_query(state['uuid'], sql_query)
             return {"sql_query": sql_query, "sql_valid": True}
-        else:
+        except Exception as e:
+            # If query fails, it's invalid
             return {
-                "sql_query": result["corrected_query"],
-                "sql_valid": result["valid"],
-                "sql_issues": result["issues"]
+                "sql_query": sql_query, 
+                "sql_valid": False,
+                "sql_issues": f"Query execution failed: {str(e)}"
             }
 
     def execute_sql(self, state: dict) -> dict:
@@ -208,23 +215,54 @@ For example:
             results = self.db_manager.execute_query(uuid, query)
             return {"results": results}
         except Exception as e:
-            return {"error": str(e)}
+            return {"error": str(e), "results": []}
 
     def format_results(self, state: dict) -> dict:
         """Format query results into a human-readable response."""
         question = state['question']
         results = state['results']
+        uuid = state['uuid']
+        session_id = state.get('session_id')
+        sql_query = state.get('sql_query', '')
+        visualization = state.get('visualization', 'none')
+        error = state.get('error')
 
         if results == "NOT_RELEVANT":
-            return {"answer": "Sorry, I can only give answers relevant to the database."}
+            answer = "Sorry, I can only give answers relevant to the database."
+        else:
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", "You are an AI assistant that formats database query results into a human-readable response. Give a conclusion to the user's question based on the query results. Do not give the answer in markdown format. Only give the answer in one line."),
+                ("human", "User question: {question}\n\nQuery results: {results}\n\nFormatted response:"),
+            ])
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "You are an AI assistant that formats database query results into a human-readable response. Give a conclusion to the user's question based on the query results. Do not give the answer in markdown format. Only give the answer in one line."),
-            ("human", "User question: {question}\n\nQuery results: {results}\n\nFormatted response:"),
-        ])
+            answer = self.llm_manager.invoke(prompt, question=question, results=results)
 
-        response = self.llm_manager.invoke(prompt, question=question, results=results)
-        return {"answer": response}
+        # Save conversation to history
+        try:
+            if not session_id:
+                session_id = self.conversation_manager.get_or_create_session(uuid)
+            
+            # Create results summary
+            if results == "NOT_RELEVANT":
+                results_summary = "Not relevant to database"
+            elif not results:
+                results_summary = "No data found"
+            else:
+                results_summary = f"Found {len(results) if isinstance(results, list) else 1} rows"
+            
+            self.conversation_manager.save_conversation(
+                session_id=session_id,
+                question=question,
+                sql_query=sql_query,
+                results_summary=results_summary,
+                visualization_type=visualization,
+                error_message=error,
+                database_uuid=uuid
+            )
+        except Exception as e:
+            print(f"Error saving conversation: {e}")
+        
+        return {"answer": answer, "session_id": session_id}
 
     def choose_visualization(self, state: dict) -> dict:
         """Choose an appropriate visualization for the data."""
@@ -234,6 +272,10 @@ For example:
 
         if results == "NOT_RELEVANT":
             return {"visualization": "none", "visualization_reasoning": "No visualization needed for irrelevant questions."}
+
+        # Handle empty results or errors
+        if not results or len(results) == 0:
+            return {"visualization": "none", "visualization_reasoning": "No data available to visualize."}
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", '''
@@ -268,8 +310,34 @@ Recommend a visualization:'''),
 
         response = self.llm_manager.invoke(prompt, question=question, sql_query=sql_query, results=results)
         
-        lines = response.split('\n')
-        visualization = lines[0].split(': ')[1]
-        reason = lines[1].split(': ')[1]
+        # Parse the response more robustly
+        lines = response.strip().split('\n')
+        visualization = "bar"  # default fallback
+        reason = "Bar chart is suitable for comparing data across categories."  # default fallback
+        
+        # Try to extract visualization and reason from response
+        for line in lines:
+            line = line.strip()
+            if line.lower().startswith('recommended visualization:'):
+                parts = line.split(':', 1)
+                if len(parts) > 1:
+                    viz_text = parts[1].strip().lower()
+                    # Extract just the chart type
+                    if 'bar' in viz_text and 'horizontal' not in viz_text:
+                        visualization = "bar"
+                    elif 'horizontal' in viz_text and 'bar' in viz_text:
+                        visualization = "horizontal_bar"
+                    elif 'line' in viz_text:
+                        visualization = "line"
+                    elif 'pie' in viz_text:
+                        visualization = "pie"
+                    elif 'scatter' in viz_text:
+                        visualization = "scatter"
+                    elif 'none' in viz_text:
+                        visualization = "none"
+            elif line.lower().startswith('reason:'):
+                parts = line.split(':', 1)
+                if len(parts) > 1:
+                    reason = parts[1].strip()
 
         return {"visualization": visualization, "visualization_reason": reason}

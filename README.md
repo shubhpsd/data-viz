@@ -1,127 +1,330 @@
-# SQL Query Visualization Project
+# Data Visualization with LangGraph
 
-This agent bridges the gap between natural language questions and data visualization, allowing users to questions about a dataset and receive insightful visual representations in response. Users can upload a SQLite database or CSV file and ask questions about the data in natural language. The agent generates a SQL query based on the user's question, executes it on the database, and formats the results into a visual representation.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Node.js 20+](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
 
-[Video Demo](demo.mov)
+> Upload SQLite or CSV files, query data using natural language, and visualize results using AI-powered agents built with LangGraph.
 
-## Overall Architecture
+## 🌟 Features
 
-The workflow is orchestrated using `LangGraph`, which provides a framework for easily building complex AI agents, a streaming API for real-time updates, and a visual studio for monitoring and experimenting with the agent's behavior. Around the LangGraph agent, the workflow uses a `SQLite Server` that supports file (SQLite and CSV) uploads under 1MB and a front-end that has prebuilt graph templates for visualization of data from LangGraph's streaming API. Once the visualization is generated, the user can also see the traces of the workflow provided by LangGraph to inspect the internal state of the agent.
+- **Natural Language Queries**: Ask questions about your data in plain English
+- **File Upload Support**: Upload SQLite databases or CSV files (under 1MB)
+- **AI-Powered SQL Generation**: Automatically generates SQL queries from natural language
+- **Interactive Visualizations**: Creates charts, graphs, and plots based on query results
+- **Real-time Streaming**: Watch the AI agent work through the problem step-by-step
+- **Conversation History**: Keep track of previous queries and results
+- **Multiple Backend Options**: Choose between Python or TypeScript backends
+- **LangGraph Integration**: Built with LangChain's LangGraph for robust agent workflows
 
-![Workflow](flow.png)
+## 🎬 Demo
 
-## Agent Architecture
+Watch the application in action:
 
-The LangGraph agent is made up of several nodes, visualized in the diagram and explained below. See more details in the blog post [here](https://pear-catboat-4f2.notion.site/Building-a-Data-Visualization-Agent-with-LangGraph-Cloud-3cd220670e40419d9f5cf961eb160514).
+https://github.com/user-attachments/assets/demo.mov
 
-![SQL Agent Workflow](graph.png)
+> See how easy it is to upload data, ask natural language questions, and get beautiful visualizations powered by AI agents.
 
-#### Parse Question
+<!-- Alternative options for video hosting:
+   - Upload to GitHub Releases and link here
+   - Host on YouTube/Vimeo and embed
+   - Convert to GIF for direct GitHub display
+-->
 
-This node perform query analysis, examining the user question jointly with the database schema to determine if the question is relevant to the database. If relevant, it identifies which tables and columns are needed to answer the question. 
+## 🏗️ Architecture
 
-#### Get Unique Nouns
+The application consists of several microservices:
 
-This node focuses on the "noun columns" for each table, which contain non-numeric values. It produces a set of sample values from these columns, which are helps in generating more precise SQL queries by knowing specific values in the database. As explained the blog post [here](https://pear-catboat-4f2.notion.site/Building-a-Data-Visualization-Agent-with-LangGraph-Cloud-3cd220670e40419d9f5cf961eb160514), this can be useful for cases of ambiguous spelling (e.g., a user may ask about the band "ac dc", but the database may contain the name "AC/DC") of entities in the database.
+1. **Frontend** (Next.js): User interface for uploading files and querying data
+2. **SQLite Server** (Node.js): Handles file uploads and database operations
+3. **LangGraph Backend** (Python/TypeScript): AI agent for query processing and visualization
+4. **Conversation API** (Python): Manages conversation history and sessions
 
-#### Generate SQL
+### Agent Workflow
 
-This node generate an SQL query based upon the user's original question, the relevant tables and columns identified earlier, the sampled data (unique nouns) extracted from the database in the above step.
+The LangGraph agent is made up of several nodes that work together:
 
-#### Validate and Fix SQL
+1. **Parse Question**: Analyzes user questions and database schema to identify relevant tables and columns
+2. **Get Unique Nouns**: Extracts sample values from non-numeric columns for precise SQL generation
+3. **Generate SQL**: Creates SQL queries based on the question and database context
+4. **Validate and Fix SQL**: Ensures SQL syntax is correct and references valid schema elements
+5. **Execute SQL**: Runs the validated query against the database
+6. **Choose Visualization**: Selects appropriate chart type (bar, line, pie, scatter, etc.)
+7. **Format Results**: Converts query results into human-readable responses
+8. **Format Data for Visualization**: Prepares data for frontend rendering
 
-This node validates the query, ensuring that the SQL query is valid and if all table and column names are correctly spelled and exist in the schema.
-
-#### Execute SQL
-
-This node runs the validated SQL query against the database. 
-
-#### Choose Visualization
-
-This node uses an LLM to choose an appropriate visualization for the data, selecting one of several visualizations (bar, horizontal bar, scatter, pie, line) to use. 
-
-#### Format Results
-
-This node uses an LLM to format the query results into a human-readable / natural language response and runs in parallel with the Format Data for Visualization node.
-
-#### Format Data for Visualization
-
-This node formats the data for the chosen visualization type, which is then used to generate the visualization on the frontend.
-
-## Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Following the LangGraph Studio setup, install [Docker](https://docs.docker.com/engine/install/)
-- Install [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio/)
+- **Node.js 20+** and **Yarn**
+- **Python 3.11+** and **pip**
+- **LangGraph Studio** (recommended) or **LangGraph CLI**
+- API keys for OpenAI or Google Gemini
 
-### Setup
+### 1. Clone the Repository
 
-#### SQLite Server
-
-The SQLite server ([see project](https://github.com/DhruvAtreja/sqllite-server)) allows uploading of SQL and CSV files under 1MB and serves two purposes: querying the database and retrieving its schema. It converts the uploaded CSV files into a SQLite database, and assigns a UUID to the database. The uploaded databases are stored in the `sqlite_server/uploads` folder. It also uses a default database [here](https://docs.google.com/spreadsheets/d/1S2mYAKwYYmjZW6jURiAfMWTVmwg74QQDfwdMUvVEgMk/edit?gid=1749607041#gid=1749607041) if you user does not upload any file. Run these steps:
-
-```
-$ cd sqlite_server
-$ yarn install
-$ yarn start
+```bash
+git clone https://github.com/yourusername/datavisualization_langgraph.git
+cd datavisualization_langgraph
 ```
 
-#### Backend
+### 2. Environment Setup
 
-You can use `backend_js` or `backend_py` as your backend. If using python, for example, the LangGraph agent is defined in `backend_py/my_agent`. This defines the logic within each node of the SQL agent, following the steps explained above. The [LangGraph API](https://github.com/langchain-ai/langgraph-api) can be used to wrap this code, providing a back-end to our application. We can run this locally using [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio), which simply involves loading the `backend_py/my_agent` folder as a project in the LangGraph Studio Desktop application. The below steps show how to run the backend locally.
+Use the provided script to set up environment files:
 
-1. **Create a `.env` file** 
-
-If using python backend, for example, you can use `backend_py/.env.example` as a template. When we load the project into LangGraph Studio, Studio will package our code with the LangGraph API and run it in a containerized Docker environment that needs access to certain environment variables provided by the `.env` file. We need the containerized LangGraph API backend to communicate with the SQLite server running on our host machine, so `host.docker.internal` resolves to the IP address of the host machine running Docker, allowing connection to the the SQLite server.
-
-```
-$ echo "OPENAI_API_KEY=your_actual_api_key_here
-DB_ENDPOINT_URL=http://host.docker.internal:3001" > backend_py/.env
+```bash
+./manage_services.sh setup
 ```
 
-2. **Start Studio** 
+This will create environment files from templates. Then edit them with your API keys:
 
-If using python locally, for example, open the `backend_py/my_agent` as a project in the LangGraph Studio desktop applications. Studio gives us direct access to the LangGraph API via a URL that is visible in the lower left corner of the Studio UI. Note that we can also use [LangGraph Cloud](https://langchain-ai.github.io/langgraph/cloud/) to deploy and host our back-end.
+**Frontend (`frontend/.env.local`):**
 
-#### Frontend
-
-After you have LangGraph Studio running locally, proceed with the frontend setup.
-
-1. **Create a `.env` file** 
-
-You can use `frontend/.env.example` as a template. Here, `LANGGRAPH_API_URL` is the URL you will find in the LangGraph Studio UI, as mentioned above, which gives the frontend access to the LangGraph API.
-
-```
-$ echo "NEXT_PUBLIC_SQLITE_URL=http://localhost:3001
-LANGGRAPH_API_URL=xxx" > frontend/.env
+```env
+NEXT_PUBLIC_APP_NAME=Data Visualization with LangGraph
+NEXT_PUBLIC_SQLITE_URL=http://localhost:3001
+LANGGRAPH_API_URL=http://localhost:8123
+LANGSMITH_API_KEY=your_langsmith_api_key_here
 ```
 
-2. **Start the frontend** 
+**Python Backend (`backend_py/.env`):**
+
+```env
+# Choose one LLM provider
+OPENAI_API_KEY=your_openai_api_key_here
+# OR
+GOOGLE_API_KEY=your_google_api_key_here
+
+DB_ENDPOINT_URL=http://host.docker.internal:3001
+PORT=5001
+LANGSMITH_API_KEY=your_langsmith_api_key_here
 ```
-$ cd frontend
-$ yarn install
-$ yarn dev
-````
 
-Now, the frontend is running at `http://localhost:3000`. By default, you can use [this sample dataset](https://docs.google.com/spreadsheets/d/1S2mYAKwYYmjZW6jURiAfMWTVmwg74QQDfwdMUvVEgMk/edit?gid=1749607041#gid=1749607041) in the UI. But, you can also upload your own CSV or SQLite file.
+### 3. Start All Services
 
-## Usage
+Use the service management script to start everything:
 
-### Using the Frontend
+```bash
+./manage_services.sh start
+```
 
-1. Navigate to the frontend URL (`http://localhost:3000` by default)
-2. Upload a SQLite or CSV file under 1 MB, or just ask a question using the [sample dataset](https://docs.google.com/spreadsheets/d/1S2mYAKwYYmjZW6jURiAfMWTVmwg74QQDfwdMUvVEgMk/edit?gid=1749607041#gid=1749607041)
-3. Enter a natural language query
-4. View the stream of the graph state and then the generated visualization
-5. Optionally, view the query execution traces
+This will automatically:
 
-### Using the LangGraph Studio
+- Install all dependencies
+- Start the SQLite server (port 3001)
+- Start the conversation API (port 5001)
+- Start the frontend (port 3000)
 
-To use the Studio UI, simply input the question and the UUID of the database, which is `921c838c-541d-4361-8c96-70cb23abd9f5` for the [sample dataset](https://docs.google.com/spreadsheets/d/1S2mYAKwYYmjZW6jURiAfMWTVmwg74QQDfwdMUvVEgMk/edit?gid=1749607041#gid=1749607041). You can see UUIDs for all uploaded files in `sqlite_server/uploads`. Below is an example visualization on an uploaded dataset, with ID retrieved from `sqlite_server/uploads`.
+### 4. Start LangGraph Backend
 
-![Studio](studio.png)
+#### Option A: Using LangGraph Studio (Recommended)
 
-## Contributing
+1. Download and install [LangGraph Studio](https://github.com/langchain-ai/langgraph-studio)
+2. Open the `backend_py/my_agent` folder as a project in LangGraph Studio
+3. The LangGraph API URL will be shown in the Studio interface
+4. Update `LANGGRAPH_API_URL` in your frontend `.env.local` file
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+#### Option B: Using LangGraph CLI
+
+```bash
+cd backend_py
+pip install langgraph-cli
+langgraph dev
+```
+
+### 5. Access the Application
+
+- **Frontend**: <http://localhost:3000>
+- **SQLite Server**: <http://localhost:3001>
+- **Conversation API**: <http://localhost:5001>
+- **LangGraph Studio**: Check the Studio interface for the API URL
+
+## 🛠️ Service Management
+
+The `manage_services.sh` script provides comprehensive service management:
+
+```bash
+# Start all services
+./manage_services.sh start
+
+# Stop all services
+./manage_services.sh stop
+
+# Check service status
+./manage_services.sh status
+
+# View logs
+./manage_services.sh logs
+
+# Run health checks
+./manage_services.sh health
+
+# Restart all services
+./manage_services.sh restart
+```
+
+### Individual Service Commands
+
+```bash
+# Start individual services
+./manage_services.sh start-frontend
+./manage_services.sh start-sqlite
+./manage_services.sh start-api
+
+# Stop individual services
+./manage_services.sh stop-frontend
+./manage_services.sh stop-sqlite
+./manage_services.sh stop-api
+```
+
+## 📊 Usage
+
+### 1. Upload Data
+
+- Navigate to <http://localhost:3000>
+- Upload a SQLite database or CSV file (under 1MB)
+- Or use the default sample dataset
+
+### 2. Ask Questions
+
+Enter natural language questions about your data:
+
+- "What are the top 5 products by revenue?"
+- "Show me sales trends over time"
+- "How many customers are from each region?"
+
+### 3. View Results
+
+- Watch the AI agent process your question step-by-step
+- See the generated SQL query
+- View the interactive visualization
+- Explore conversation history
+
+## 🔧 Development
+
+### Project Structure
+
+```file tree
+datavisualization_langgraph/
+├── frontend/                 # Next.js frontend application
+├── backend_py/              # Python LangGraph backend
+├── backend_js/              # TypeScript LangGraph backend (alternative)
+├── sqlite_server/           # SQLite file server
+├── manage_services.sh       # Service management script
+├── .gitignore              # Git ignore rules
+└── env.example             # Environment template
+```
+
+### Backend Options
+
+Choose between Python or TypeScript backends:
+
+- **Python Backend** (`backend_py/`): Uses Google Gemini or OpenAI
+- **TypeScript Backend** (`backend_js/`): Uses OpenAI
+
+Both backends provide the same functionality. The Python backend is recommended for better LangGraph integration.
+
+### Adding New Visualizations
+
+1. Create a new component in `frontend/src/components/graphs/`
+2. Add the component to `graphDictionary.ts`
+3. Update the backend's `DataFormatter` to support the new visualization type
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | OpenAI API key | Yes (if using OpenAI) |
+| `GOOGLE_API_KEY` | Google Gemini API key | Yes (if using Google) |
+| `LANGSMITH_API_KEY` | LangSmith API key for tracing | Optional |
+| `LANGGRAPH_API_URL` | LangGraph backend URL | Yes |
+| `NEXT_PUBLIC_SQLITE_URL` | SQLite server URL | Yes |
+| `DB_ENDPOINT_URL` | Database endpoint for backend | Yes |
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow the existing code style and conventions
+- Add tests for new features
+- Update documentation as needed
+- Ensure all services pass health checks
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Services won't start:**
+
+```bash
+# Check if ports are already in use
+./manage_services.sh status
+
+# Clean up and restart
+./manage_services.sh stop
+./manage_services.sh clean
+./manage_services.sh start
+```
+
+**Environment issues:**
+
+```bash
+# Reconfigure environment files
+./manage_services.sh setup
+# Edit the .env files with your API keys
+```
+
+**LangGraph connection issues:**
+
+- Ensure LangGraph Studio is running
+- Check the `LANGGRAPH_API_URL` in frontend `.env.local`
+- Verify API keys are correctly set
+
+**Database upload issues:**
+
+- File size must be under 1MB
+- Supported formats: SQLite (.sqlite, .db) and CSV (.csv)
+- Check SQLite server logs: `./manage_services.sh logs`
+
+### Health Monitoring
+
+```bash
+# Check all services
+./manage_services.sh health
+
+# View detailed logs
+./manage_services.sh logs
+
+# Monitor individual service status
+./manage_services.sh status
+```
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [LangChain](https://langchain.com/) for the amazing LangGraph framework
+- [Next.js](https://nextjs.org/) for the frontend framework
+- [MUI](https://mui.com/) for the beautiful UI components
+- [SQLite](https://sqlite.org/) for the embedded database
+
+## 📞 Support
+
+If you encounter any issues or have questions:
+
+1. Check the [troubleshooting section](#-troubleshooting)
+2. Look through existing [GitHub Issues](https://github.com/yourusername/datavisualization_langgraph/issues)
+3. Create a new issue with detailed information about your problem
+
+---
+
+Made with ❤️ using LangGraph and Next.js

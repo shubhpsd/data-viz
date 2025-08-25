@@ -8,7 +8,7 @@ const Home: NextPage = () => (
   <>
     <Head>
       <link rel='icon' href='/logo.jpeg' />
-      <title>Data Visualization Tool</title>
+      <title>DataViz Pro - Business Intelligence Platform</title>
     </Head>
     <Playground />
   </>
