@@ -196,7 +196,7 @@ start_all() {
     print_status "Run './manage_services.sh logs' to view logs"
     echo ""
     print_status "Note: LangGraph backend should be started separately using LangGraph Studio"
-    print_status "      or run locally with: cd backend_py && langgraph dev --port 8123"
+    print_status "      or run locally with: cd backend_py && /venv/bin/activate && langgraph dev --port 8123"
 }
 
 # Function to stop all services
@@ -238,7 +238,7 @@ show_status() {
     
     echo ""
     print_status "Note: LangGraph backend should be started separately using LangGraph Studio"
-    print_status "      or run locally with: cd backend_py && langgraph dev --port 8123"
+    print_status "      or run locally with: cd backend_py && /venv/bin/activate && langgraph dev --port 8123"
 }
 
 # Function to show logs
