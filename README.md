@@ -4,7 +4,7 @@
 
 ## Demo
 
-[Watch the demo video](https://github.com/shubhpsd/data-viz/assets/102896824/d0b712c9-9323-450d-8e83-c39a97f8a55f)
+[Watch the demo video](https://private-user-images.githubusercontent.com/49413915/512586879-d7f5dbff-a9ca-478f-aa05-3390634d5d8e.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjI4NDkzMjksIm5iZiI6MTc2Mjg0OTAyOSwicGF0aCI6Ii80OTQxMzkxNS81MTI1ODY4NzktZDdmNWRiZmYtYTljYS00NzhmLWFhMDUtMzM5MDYzNGQ1ZDhlLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNTExMTElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjUxMTExVDA4MTcwOVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWU4ZTQ4OThmN2FmNjhiZTFlMTZlZWY0YWVmMjI0ZmJkY2MyY2QxZWI5MzY0Y2IyMjMyNTJlYmZjYjZhZjg4NTYmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0In0.Sl-OKwb50iV9AltWMALAWMj9eInxCMJDsuEUT2t_1Zc)
 
 DataViz Pro is a tool that lets you turn data into visualizations just by asking. You can upload a database file (SQLite), and then ask questions in plain English. The system will understand your request, query the database, and generate the appropriate chart or graph to display the results.
 
