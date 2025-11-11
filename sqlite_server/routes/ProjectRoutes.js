@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const multer = require("multer");
-const sqlite3 = require("sqlite3");
+const sqlite3 = require("@vscode/sqlite3");
 const csv = require("csv-parser");
 
 const app = express();

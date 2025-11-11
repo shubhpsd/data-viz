@@ -14,7 +14,6 @@ NC='\033[0m' # No Color
 
 # Service configuration
 FRONTEND_PORT=3000
-SQLITE_SERVER_PORT=3001
 CONVERSATION_API_PORT=5001
 
 # PID files directory
@@ -23,7 +22,6 @@ mkdir -p "$PID_DIR"
 
 # Service PID files
 FRONTEND_PID="$PID_DIR/frontend.pid"
-SQLITE_SERVER_PID="$PID_DIR/sqlite_server.pid"
 CONVERSATION_API_PID="$PID_DIR/conversation_api.pid"
 
 # Log files directory
@@ -83,36 +81,6 @@ is_service_running() {
     fi
 }
 
-# Function to start SQLite server
-start_sqlite_server() {
-    if is_service_running "$SQLITE_SERVER_PID"; then
-        print_warning "SQLite server is already running"
-        return
-    fi
-
-    print_status "Starting SQLite server..."
-    cd sqlite_server
-    
-    if [ ! -d "node_modules" ]; then
-        print_status "Installing SQLite server dependencies..."
-        yarn install
-    fi
-    
-    nohup yarn start > "../$LOG_DIR/sqlite_server.log" 2>&1 &
-    echo $! > "../$SQLITE_SERVER_PID"
-    cd ..
-    
-    # Wait a moment for the server to start
-    sleep 3
-    
-    if check_port $SQLITE_SERVER_PORT; then
-        print_success "SQLite server started on port $SQLITE_SERVER_PORT"
-    else
-        print_error "Failed to start SQLite server"
-        rm -f "$SQLITE_SERVER_PID"
-    fi
-}
-
 # Function to start conversation API
 start_conversation_api() {
     if is_service_running "$CONVERSATION_API_PID"; then
@@ -164,8 +132,13 @@ start_frontend() {
     
     if [ ! -d "node_modules" ]; then
         print_status "Installing frontend dependencies..."
+        # Add Homebrew to PATH for installation
+        export PATH="/opt/homebrew/bin:$PATH"
         yarn install
     fi
+    
+    # Add Homebrew to PATH to find node
+    export PATH="/opt/homebrew/bin:$PATH"
     
     nohup yarn dev > "../$LOG_DIR/frontend.log" 2>&1 &
     echo $! > "../$FRONTEND_PID"
@@ -210,7 +183,6 @@ start_all() {
     check_environment_files
     echo ""
     
-    start_sqlite_server
     start_conversation_api
     start_frontend
     
@@ -218,7 +190,6 @@ start_all() {
     print_success "All services startup completed!"
     echo ""
     print_status "Frontend: http://localhost:$FRONTEND_PORT"
-    print_status "SQLite Server: http://localhost:$SQLITE_SERVER_PORT"
     print_status "Conversation API: http://localhost:$CONVERSATION_API_PORT"
     echo ""
     print_status "Run './manage_services.sh status' to check service health"
@@ -234,7 +205,6 @@ stop_all() {
     
     stop_service "Frontend" "$FRONTEND_PID" "$FRONTEND_PORT"
     stop_service "Conversation API" "$CONVERSATION_API_PID" "$CONVERSATION_API_PORT"
-    stop_service "SQLite Server" "$SQLITE_SERVER_PID" "$SQLITE_SERVER_PORT"
     
     print_success "All services stopped"
 }
@@ -251,13 +221,6 @@ restart_all() {
 show_status() {
     echo "Service Status:"
     echo "=============="
-    
-    # Check SQLite Server
-    if is_service_running "$SQLITE_SERVER_PID"; then
-        print_success "SQLite Server: RUNNING (port $SQLITE_SERVER_PORT)"
-    else
-        print_error "SQLite Server: STOPPED"
-    fi
     
     # Check Conversation API
     if is_service_running "$CONVERSATION_API_PID"; then
@@ -286,12 +249,6 @@ show_logs() {
     if [ -f "$LOG_DIR/frontend.log" ]; then
         echo -e "${BLUE}Frontend logs (last 10 lines):${NC}"
         tail -n 10 "$LOG_DIR/frontend.log"
-        echo ""
-    fi
-    
-    if [ -f "$LOG_DIR/sqlite_server.log" ]; then
-        echo -e "${BLUE}SQLite Server logs (last 10 lines):${NC}"
-        tail -n 10 "$LOG_DIR/sqlite_server.log"
         echo ""
     fi
     
@@ -338,13 +295,6 @@ health_check() {
     print_status "Running health checks..."
     echo ""
     
-    # Check SQLite Server
-    if curl -s "http://localhost:$SQLITE_SERVER_PORT/health" > /dev/null 2>&1; then
-        print_success "SQLite Server: Healthy"
-    else
-        print_error "SQLite Server: Unhealthy or not responding"
-    fi
-    
     # Check Conversation API
     if curl -s "http://localhost:$CONVERSATION_API_PORT/health" > /dev/null 2>&1; then
         print_success "Conversation API: Healthy"
@@ -380,10 +330,8 @@ show_help() {
     echo ""
     echo "Individual service commands:"
     echo "  start-frontend     Start only frontend"
-    echo "  start-sqlite       Start only SQLite server"
     echo "  start-api          Start only conversation API"
     echo "  stop-frontend      Stop only frontend"
-    echo "  stop-sqlite        Stop only SQLite server"
     echo "  stop-api           Stop only conversation API"
     echo ""
     echo "Example:"
@@ -405,11 +353,6 @@ setup_environment() {
     if [ ! -f "backend_py/.env" ]; then
         cp backend_py/env.example backend_py/.env
         print_success "Created backend_py/.env"
-    fi
-    
-    if [ ! -f "backend_js/.env" ]; then
-        cp backend_js/env.example backend_js/.env
-        print_success "Created backend_js/.env"
     fi
     
     echo ""
@@ -457,17 +400,11 @@ case "${1:-help}" in
     start-frontend)
         start_frontend
         ;;
-    start-sqlite)
-        start_sqlite_server
-        ;;
     start-api)
         start_conversation_api
         ;;
     stop-frontend)
         stop_service "Frontend" "$FRONTEND_PID" "$FRONTEND_PORT"
-        ;;
-    stop-sqlite)
-        stop_service "SQLite Server" "$SQLITE_SERVER_PID" "$SQLITE_SERVER_PORT"
         ;;
     stop-api)
         stop_service "Conversation API" "$CONVERSATION_API_PID" "$CONVERSATION_API_PORT"

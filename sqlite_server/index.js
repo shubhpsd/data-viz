@@ -6,6 +6,8 @@ const app = express();
 
 app.use(projectRouter);
 
-app.listen(8081, () => {
-  console.log("Server is running...");
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+  console.log(`SQLite Server is running on port ${PORT}`);
 });

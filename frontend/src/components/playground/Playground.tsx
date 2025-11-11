@@ -52,6 +52,40 @@ export default function Playground() {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const [isUploading, setIsUploading] = useState(false)
 
+  // Restore from localStorage after component mounts (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedDbUuid = localStorage.getItem('databaseUuid')
+      const savedDbFilename = localStorage.getItem('databaseFileName')
+      const savedSessionId = localStorage.getItem('sessionId')
+
+      if (savedDbUuid) setDatabaseUuid(savedDbUuid)
+      if (savedDbFilename) setDatabaseFileName(savedDbFilename)
+      if (savedSessionId) setSessionId(savedSessionId)
+    }
+  }, [])
+
+  // Persist database UUID to localStorage whenever it changes
+  useEffect(() => {
+    if (databaseUuid && typeof window !== 'undefined') {
+      localStorage.setItem('databaseUuid', databaseUuid)
+    }
+  }, [databaseUuid])
+
+  // Persist database filename to localStorage whenever it changes
+  useEffect(() => {
+    if (databaseFileName && typeof window !== 'undefined') {
+      localStorage.setItem('databaseFileName', databaseFileName)
+    }
+  }, [databaseFileName])
+
+  // Persist session ID to localStorage whenever it changes
+  useEffect(() => {
+    if (sessionId && typeof window !== 'undefined') {
+      localStorage.setItem('sessionId', sessionId)
+    }
+  }, [sessionId])
+
   const uploadDatabase = useCallback(async (file: File): Promise<string> => {
     const formData = new FormData()
     formData.append('file', file)
@@ -160,6 +194,29 @@ export default function Playground() {
         setDatabaseUuid(uuid)
         setDatabaseFileName(file.name)
         console.log(`File "${file.name}" uploaded successfully. UUID: ${uuid}`)
+
+        // Create a new conversation session for this database
+        try {
+          const sessionResponse = await fetch('http://localhost:5001/session/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              database_uuid: uuid,
+              user_identifier: null, // You can add user identification if needed
+            }),
+          })
+
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json()
+            setSessionId(sessionData.session_id)
+            console.log(`Session created: ${sessionData.session_id}`)
+          }
+        } catch (sessionError) {
+          console.error('Failed to create session:', sessionError)
+          // Continue even if session creation fails
+        }
       } catch (error) {
         console.error('Failed to upload file:', error)
         alert('Failed to upload file')
@@ -220,47 +277,50 @@ export default function Playground() {
       return null
     }
 
+    // Check if formatted_data_for_visualization has the necessary data
+    const vizData = graphState.formatted_data_for_visualization
+    if (!vizData || typeof vizData !== 'object' || Object.keys(vizData).length === 0) {
+      return null
+    }
+
     const visualizationType = graphState.visualization as keyof typeof graphDictionary
     const visualizationConfig = graphDictionary[visualizationType]
 
     if (!visualizationConfig) {
       return (
-        <div className="p-8 text-center bg-gruvbox-light-red/10 dark:bg-gruvbox-dark-red/10 rounded-xl border border-gruvbox-light-red/30 dark:border-gruvbox-dark-red/30">
-          <h3 className="text-lg font-bold text-gruvbox-light-red dark:text-gruvbox-dark-red mb-2">
+        <div className='p-8 text-center bg-gruvbox-light-red/10 dark:bg-gruvbox-dark-red/10 rounded-xl border border-gruvbox-light-red/30 dark:border-gruvbox-dark-red/30'>
+          <h3 className='text-lg font-bold text-gruvbox-light-red dark:text-gruvbox-dark-red mb-2'>
             Unsupported Visualization Type
           </h3>
-          <p className="text-gruvbox-light-fg3 dark:text-gruvbox-dark-fg3">
+          <p className='text-gruvbox-light-fg3 dark:text-gruvbox-dark-fg3'>
             Visualization type "{graphState.visualization}" is not supported.
           </p>
-          <p className="text-gruvbox-light-fg4 dark:text-gruvbox-dark-fg4 text-sm mt-2">
+          <p className='text-gruvbox-light-fg4 dark:text-gruvbox-dark-fg4 text-sm mt-2'>
             Supported types: {Object.keys(graphDictionary).join(', ')}
           </p>
         </div>
       )
     }
 
-    return React.createElement(
-      visualizationConfig.component as React.ComponentType<any>,
-      {
-        data: graphState.formatted_data_for_visualization,
-      },
-    )
+    return React.createElement(visualizationConfig.component as React.ComponentType<any>, {
+      data: graphState.formatted_data_for_visualization,
+    })
   }
 
   return (
     <div className='min-h-screen bg-gruvbox-light-bg dark:bg-gruvbox-dark-bg transition-colors duration-300'>
       {/* Theme Toggle */}
       <ThemeToggle />
-      
+
       {/* Logo and Header */}
       <Logo setGraphState={setGraphState} />
-      <Header 
+      <Header
         databaseFileName={databaseFileName}
         onDatabaseChange={() => {
           console.log('Database change requested')
         }}
       />
-      
+
       {/* Upload Button */}
       <div className='fixed top-4 right-4 z-30'>
         <UploadButton onFileUpload={handleFileUpload} disabled={isUploading} />
@@ -269,16 +329,16 @@ export default function Playground() {
       {/* Main Content Area */}
       {!graphState?.formatted_data_for_visualization && (
         <div className='flex flex-col items-center justify-center min-h-[60vh] max-w-7xl mx-auto px-4 py-12'>
-          <div className="text-center mb-12">
+          <div className='text-center mb-12'>
             <h2 className='text-4xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-6 font-mono'>
-              Ask anything about your 
-              <span className="text-gruvbox-light-blue dark:text-gruvbox-dark-blue"> business data</span>
+              Ask anything about your
+              <span className='text-gruvbox-light-blue dark:text-gruvbox-dark-blue'> business data</span>
             </h2>
-            <p className="text-xl text-gruvbox-light-fg3 dark:text-gruvbox-dark-fg3 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className='text-xl text-gruvbox-light-fg3 dark:text-gruvbox-dark-fg3 mb-8 max-w-3xl mx-auto leading-relaxed'>
               Type your question in natural language and get instant insights with beautiful visualizations
             </p>
           </div>
-          
+
           {/* Main Form */}
           <Form
             selectedQuestion={selectedQuestion}
@@ -289,17 +349,20 @@ export default function Playground() {
 
           {/* Database Info and Sample Questions */}
           {!graphState && (
-            <div className="max-w-6xl mx-auto px-4 mt-16">
+            <div className='max-w-6xl mx-auto px-4 mt-16'>
               {/* Database Features */}
               <div className='text-center mb-16'>
-                <div className='bg-gruvbox-light-bg-soft/70 dark:bg-gruvbox-dark-bg-soft/70 
+                <div
+                  className='bg-gruvbox-light-bg-soft/70 dark:bg-gruvbox-dark-bg-soft/70 
                               rounded-2xl shadow-xl border border-gruvbox-light-fg4/20 dark:border-gruvbox-dark-fg4/20 
-                              p-8 mb-12 backdrop-blur-sm'>
-                  <h3 className="text-2xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-6 font-mono">
+                              p-8 mb-12 backdrop-blur-sm'
+                >
+                  <h3 className='text-2xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-6 font-mono'>
                     🏢 Comprehensive Business Intelligence Database
                   </h3>
                   <p className='text-gruvbox-light-fg3 dark:text-gruvbox-dark-fg3 mb-8 text-lg'>
-                    Get started with our feature-rich database containing 14+ interconnected tables for advanced analytics:
+                    Get started with our feature-rich database containing 14+ interconnected tables for advanced
+                    analytics:
                   </p>
                   <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
                     {[
@@ -316,18 +379,21 @@ export default function Playground() {
                       { icon: '📂', label: 'Category Hierarchy' },
                       { icon: '📍', label: 'Address Management' },
                     ].map((item, index) => (
-                      <div key={index} className="flex items-center space-x-2 text-gruvbox-light-fg2 dark:text-gruvbox-dark-fg2 
+                      <div
+                        key={index}
+                        className='flex items-center space-x-2 text-gruvbox-light-fg2 dark:text-gruvbox-dark-fg2 
                                                    bg-gruvbox-light-bg/50 dark:bg-gruvbox-dark-bg/50 rounded-lg p-3
                                                    hover:bg-gruvbox-light-yellow/10 dark:hover:bg-gruvbox-dark-yellow/10
-                                                   transition-colors duration-300">
-                        <span className="text-lg">{item.icon}</span>
-                        <span className="font-medium">{item.label}</span>
+                                                   transition-colors duration-300'
+                      >
+                        <span className='text-lg'>{item.icon}</span>
+                        <span className='font-medium'>{item.label}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
-              
+
               {/* Sample Questions */}
               <QuestionDisplay displayedQuestions={displayedQuestions} handleQuestionClick={handleQuestionClick} />
             </div>
@@ -338,8 +404,8 @@ export default function Playground() {
       {/* Processing Stream */}
       {graphState && !(graphState.formatted_data_for_visualization || graphState.visualization == 'none') && (
         <div className='flex justify-center items-start mt-16 px-4'>
-          <div className="w-full max-w-5xl">
-            <h3 className="text-2xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-8 text-center font-mono">
+          <div className='w-full max-w-5xl'>
+            <h3 className='text-2xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-8 text-center font-mono'>
               🧠 AI Processing Pipeline
             </h3>
             <Stream graphState={graphState} />
@@ -361,11 +427,13 @@ export default function Playground() {
           >
             🔍 See Traces
           </button>
-          
-          <div className='flex w-full flex-col p-12 rounded-2xl 
+
+          <div
+            className='flex w-full flex-col p-12 rounded-2xl 
                         bg-gruvbox-light-bg-soft dark:bg-gruvbox-dark-bg-soft 
                         border border-gruvbox-light-fg4/20 dark:border-gruvbox-dark-fg4/20
-                        shadow-xl items-center justify-center'>
+                        shadow-xl items-center justify-center'
+          >
             <div className='text-lg text-gruvbox-light-fg dark:text-gruvbox-dark-fg mx-20 leading-relaxed'>
               {graphState.answer}
             </div>
@@ -375,12 +443,14 @@ export default function Playground() {
               </div>
             )}
           </div>
-          
+
           {/* Follow-up Form */}
-          <div className="w-full max-w-4xl mt-12 px-4">
-            <div className="bg-gruvbox-light-bg-soft/70 dark:bg-gruvbox-dark-bg-soft/70 rounded-2xl p-8 
-                          border border-gruvbox-light-fg4/20 dark:border-gruvbox-dark-fg4/20 backdrop-blur-sm">
-              <h3 className="text-xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-6 font-mono">
+          <div className='w-full max-w-4xl mt-12 px-4'>
+            <div
+              className='bg-gruvbox-light-bg-soft/70 dark:bg-gruvbox-dark-bg-soft/70 rounded-2xl p-8 
+                          border border-gruvbox-light-fg4/20 dark:border-gruvbox-dark-fg4/20 backdrop-blur-sm'
+            >
+              <h3 className='text-xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-6 font-mono'>
                 💬 Ask a follow-up question
               </h3>
               <Form
@@ -394,8 +464,8 @@ export default function Playground() {
 
           {showSidebar && (
             <div ref={sidebarRef}>
-              <Sidebar 
-                graphState={graphState} 
+              <Sidebar
+                graphState={graphState}
                 sessionId={sessionId}
                 onClose={toggleSidebar}
                 onQuestionSelect={(question) => {
@@ -422,24 +492,28 @@ export default function Playground() {
           >
             📊 See Analysis
           </button>
-          
-          <div className='flex w-full flex-col p-12 rounded-2xl 
+
+          <div
+            className='flex w-full flex-col p-12 rounded-2xl 
                         bg-gruvbox-light-bg-soft dark:bg-gruvbox-dark-bg-soft 
                         border border-gruvbox-light-fg4/20 dark:border-gruvbox-dark-fg4/20
-                        shadow-xl items-center justify-center'>
+                        shadow-xl items-center justify-center'
+          >
             <div className='text-sm text-gruvbox-light-fg dark:text-gruvbox-dark-fg mx-20 mb-8'>
               {graphState.answer && <div className='markdown-content'>{graphState.answer}</div>}
             </div>
-            
+
             {/* Safe Visualization Rendering */}
             {renderVisualization()}
           </div>
-          
+
           {/* Follow-up Form */}
-          <div className="w-full max-w-4xl mt-12 px-4">
-            <div className="bg-gruvbox-light-bg-soft/70 dark:bg-gruvbox-dark-bg-soft/70 rounded-2xl p-8 
-                          border border-gruvbox-light-fg4/20 dark:border-gruvbox-dark-fg4/20 backdrop-blur-sm">
-              <h3 className="text-xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-6 font-mono">
+          <div className='w-full max-w-4xl mt-12 px-4'>
+            <div
+              className='bg-gruvbox-light-bg-soft/70 dark:bg-gruvbox-dark-bg-soft/70 rounded-2xl p-8 
+                          border border-gruvbox-light-fg4/20 dark:border-gruvbox-dark-fg4/20 backdrop-blur-sm'
+            >
+              <h3 className='text-xl font-bold text-gruvbox-light-fg dark:text-gruvbox-dark-fg mb-6 font-mono'>
                 💬 Ask a follow-up question
               </h3>
               <Form
@@ -453,8 +527,8 @@ export default function Playground() {
 
           {showSidebar && (
             <div ref={sidebarRef}>
-              <Sidebar 
-                graphState={graphState} 
+              <Sidebar
+                graphState={graphState}
                 sessionId={sessionId}
                 onClose={toggleSidebar}
                 onQuestionSelect={(question) => {

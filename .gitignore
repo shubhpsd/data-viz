@@ -18,6 +18,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Next.js
 .next/
@@ -52,6 +55,8 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+conversations.sqlite
+.langgraph_api/
 
 # Virtual environments
 venv/
@@ -59,6 +64,7 @@ env/
 ENV/
 env.bak/
 venv.bak/
+*.venv
 
 # IDEs and editors
 .vscode/
@@ -66,6 +72,12 @@ venv.bak/
 *.swp
 *.swo
 *~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
 # OS generated files
 .DS_Store
@@ -75,20 +87,21 @@ venv.bak/
 .Trashes
 ehthumbs.db
 Thumbs.db
+desktop.ini
 
 # Logs
 *.log
-logs/
+logs/*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# SQLite databases (except sample data)
+# SQLite databases (except sample database)
 *.sqlite
 *.sqlite3
 *.db
-!sample.sqlite
+!sqlite_server/uploads/921c838c-541d-4361-8c96-70cb23abd9f5.sqlite
 
 # Uploaded files
 sqlite_server/uploads/*.sqlite
@@ -96,17 +109,25 @@ sqlite_server/uploads/*.csv
 sqlite_server/uploads/*.db
 
 # Runtime data
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Test coverage
 coverage/
 *.lcov
-
-# nyc test coverage
 .nyc_output
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
 
 # Dependency directories
 node_modules/
@@ -121,35 +142,27 @@ jspm_packages/
 # Output of 'npm pack'
 *.tgz
 
-# Yarn Integrity file
+# Yarn
 .yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
-# dotenv environment variables file
-.env
-.env.test
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
+# dotenv
+.env*
+!.env.example
+!env.example
 
 # Temporary folders
 tmp/
 temp/
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.tmp
 
 # Build artifacts
-*.tgz
 *.tar.gz
+dist-ssr
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -157,14 +170,7 @@ temp/
 # pyenv
 .python-version
 
-# celery beat schedule file
-celerybeat-schedule
-
-# SageMath parsed files
-*.sage.py
-
 # Environments
-.env
 .venv
 env/
 venv/
@@ -172,15 +178,10 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
+# Documentation builds
 /site
+_build/
+.doctrees/
 
 # mypy
 .mypy_cache/
@@ -189,3 +190,28 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Ruff
+.ruff_cache/
+
+# MacOS
+.AppleDouble
+.LSOverride
+Icon
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db:encryptable
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk

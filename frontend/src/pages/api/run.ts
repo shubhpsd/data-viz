@@ -6,7 +6,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const { question, databaseUuid, sessionId } = req.body
-  const defaultDatabaseUuid = 'dae413af-fef8-4101-ad7d-9f333b041829'
+  const defaultDatabaseUuid = '921c838c-541d-4361-8c96-70cb23abd9f5'
 
   const client = new Client({
     apiKey: process.env.LANGSMITH_API_KEY,
